@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WoW Assistant - 魔兽世界硬件级智能外设控制台</title>
+    <link rel="stylesheet" href="styles.css" />
+    <script type="module" src="/main.js" defer></script>
+  </head>
+
+  <body>
+    <div class="app-layout">
+      <!-- 顶部状态栏 -->
+      <header class="app-header">
+        <div class="logo-zone">
+          <div class="logo-icon">⚔️</div>
+          <div>
+            <h1 class="logo-title">WoW Hardware Assistant</h1>
+            <span class="logo-subtitle">纯黑盒视觉 + RP2040 硬件外设模拟系统</span>
+          </div>
+        </div>
+
+        <div class="hardware-badge" id="hw-status-badge">
+          <span class="pulse-dot active" id="hw-dot"></span>
+          <span id="hw-status-text">硬件检测中...</span>
+          <button class="btn-sm" id="btn-reconnect">重连</button>
+        </div>
+      </header>
+
+      <!-- 导航标签栏 -->
+      <nav class="nav-tabs">
+        <button class="tab-btn active" data-tab="fishing">
+          <span class="tab-icon">🎣</span> 自动钓鱼 (Fishing)
+        </button>
+        <button class="tab-btn" data-tab="mining">
+          <span class="tab-icon">⛏️</span> 巡航采矿 (Mining)
+        </button>
+        <button class="tab-btn" data-tab="hardware">
+          <span class="tab-icon">🎮</span> 硬件调试 (RP2040)
+        </button>
+      </nav>
+
+      <!-- 主内容区 -->
+      <main class="main-content">
+        <!-- 钓鱼面板 -->
+        <section class="tab-panel active" id="panel-fishing">
+          <div class="card-grid">
+            <div class="card">
+              <h2 class="card-title">🎣 自动钓鱼配置</h2>
+              <div class="form-group">
+                <label for="fish-key">游戏内抛竿快捷键</label>
+                <input type="text" id="fish-key" value="1" maxlength="5" />
+                <span class="field-hint">对应魔兽动作条中放置“钓鱼”技能的键位</span>
+              </div>
+              <div class="form-group">
+                <label for="fish-timeout">防脱钩超时时间 (秒)</label>
+                <input type="number" id="fish-timeout" value="22" min="10" max="35" />
+                <span class="field-hint">若超时未检测到咬钩，自动收杆重新抛投</span>
+              </div>
+
+            </div>
+
+            <div class="card">
+              <h2 class="card-title">⚡ 运行状态监控</h2>
+              <div class="status-monitor">
+                <div class="monitor-item">
+                  <span class="label">当前动作阶段：</span>
+                  <span class="val highlight" id="fish-stage">空闲待命 (IDLE)</span>
+                </div>
+                <div class="monitor-item">
+                  <span class="label">本次累计收杆：</span>
+                  <span class="val" id="fish-count">0 次</span>
+                </div>
+                <div class="monitor-item">
+                  <span class="label">鱼漂坐标锁定：</span>
+                  <span class="val" id="fish-coords">未锁定</span>
+                </div>
+              </div>
+
+              <div class="btn-group">
+                <button class="btn btn-primary" id="btn-start-fish">
+                  ▶ 启动钓鱼 (F9)
+                </button>
+                <button class="btn btn-danger" id="btn-stop-fish" disabled>
+                  ⏹ 停止 (F10)
+                </button>
+                <button class="btn btn-secondary" id="btn-open-debug-dir" title="直接在文件资源管理器中打开模型截屏，排查到底截取了什么画面">
+                  📂 查看截屏排查目录
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+
+
+        <!-- 采矿面板 -->
+        <section class="tab-panel" id="panel-mining">
+          <div class="card-grid">
+            <div class="card">
+              <h2 class="card-title">⛏️ 采矿与飞行配置</h2>
+              
+              <div class="form-group toggle-group">
+                <div>
+                  <label class="toggle-label" for="druid-mode">德鲁伊变鸟模式 (瞬发飞行)</label>
+                  <span class="field-hint">开启后下地挖完直接变鸟升空，无需读条坐骑</span>
+                </div>
+                <input type="checkbox" id="druid-mode" class="toggle-switch" checked />
+              </div>
+
+              <div class="form-group" id="group-mount-key">
+                <label for="mount-key">飞行坐骑 / 变鸟快捷键</label>
+                <input type="text" id="mount-key" value="F1" maxlength="5" />
+                <span class="field-hint">德鲁伊填飞行形态快捷键，其他职业填飞行坐骑键</span>
+              </div>
+
+              <div class="form-group">
+                <label for="mine-duration">采矿读条等待 (毫秒)</label>
+                <input type="number" id="mine-duration" value="3200" step="100" />
+                <span class="field-hint">魔兽默认采集矿石耗时约 3.2 秒</span>
+              </div>
+            </div>
+
+            <div class="card">
+              <h2 class="card-title">🧭 巡航与准星引导</h2>
+              <div class="status-monitor">
+                <div class="monitor-item">
+                  <span class="label">巡航阶段：</span>
+                  <span class="val highlight" id="mine-stage">待命</span>
+                </div>
+                <div class="monitor-item">
+                  <span class="label">准星标记检测：</span>
+                  <span class="val" id="mine-crosshair">等待寻找</span>
+                </div>
+              </div>
+
+              <div class="btn-group">
+                <button class="btn btn-primary" id="btn-start-mine">
+                  ▶ 启动采矿巡航
+                </button>
+                <button class="btn btn-danger" id="btn-stop-mine" disabled>
+                  ⏹ 停止巡航
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 硬件调试面板 -->
+        <section class="tab-panel" id="panel-hardware">
+          <div class="card">
+            <h2 class="card-title">🎮 RP2040 硬件外设直控测试</h2>
+            <p class="section-desc">测试 Rust 原生串口驱动直接向 RP2040 发送指令与片上拟人移动。</p>
+            
+            <div class="hw-test-grid">
+              <button class="btn btn-outline" id="test-ping">
+                📡 PING 握手测试
+              </button>
+              <button class="btn btn-outline" id="test-human-move">
+                🪶 测试片上拟人移动 (HM)
+              </button>
+              <button class="btn btn-outline" id="test-click">
+                🖱️ 测试硬件右键点击
+              </button>
+              <button class="btn btn-outline" id="test-led">
+                💡 切换板载彩灯颜色
+              </button>
+              <button class="btn btn-warning" id="test-reset">
+                🛑 紧急释放全部按键 (RESET)
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <!-- 全局日志控制台 -->
+        <section class="console-section">
+          <div class="console-header">
+            <span>📋 实时运行控制台日志</span>
+            <div class="console-actions">
+              <button class="btn-clear" id="btn-copy-log">📋 复制日志</button>
+              <button class="btn-clear" id="btn-clear-log">清空日志</button>
+            </div>
+          </div>
+          <div class="console-box" id="console-log">
+            <div class="log-item info">[系统] WoW 智能硬件助手已启动，正在监听 Rust 后端核心...</div>
+          </div>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>
