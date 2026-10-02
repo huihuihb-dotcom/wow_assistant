@@ -258,7 +258,6 @@ pub fn run() {
             focus_game_window,
             open_debug_dir,
         ])
-
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

@@ -168,6 +168,75 @@ pub fn get_fishing_water_roi(cap: &WindowCapture) -> (RgbaImage, u32, u32) {
     (cropped, offset_x, offset_y)
 }
 
+/// 水面中心 640×640 裁剪结果（鱼漂必然在其中，且无切片边界截断风险）
+#[derive(Debug, Clone)]
+pub struct WaterTile {
+    pub image: RgbaImage,
+    /// 该切片左上角在屏幕坐标系中的 X 偏移
+    pub offset_x: u32,
+    /// 该切片左上角在屏幕坐标系中的 Y 偏移
+    pub offset_y: u32,
+}
+
+/// 水面截图区域 —— 完全对齐 FishingFun 的稳定公式：
+///   X: 屏幕宽 25%~75%（水平正中间一半，鱼漂必然在此范围）
+///   Y: 屏幕高 25%~75% 再减 100px（避开顶部标题 + 底部 UI 栏）
+///
+/// FishingFun 原始公式（WowScreen.cs line 16）：
+///   new Rectangle(W/4, H/4, W/2, H/2 - 100)
+///
+/// 该区域由 FishingFun 长期验证为最稳定的鱼漂覆盖区域。
+/// 尺寸非 640×640 时，preprocess_letterbox 自动等比缩放 + 灰边 padding。
+pub fn get_water_center_wide(cap: &WindowCapture) -> Option<WaterTile> {
+    let (img_w, img_h) = cap.image.dimensions();
+    if img_w < 640 || img_h < 640 {
+        return None;
+    }
+
+    // FishingFun 公式：X=W/4, Y=H/4, W=W/2, H=H/2-100
+    let tile_x = img_w / 4;
+    let tile_y = img_h / 4;
+    let tile_w = img_w / 2;
+    let tile_h = (img_h / 2).saturating_sub(100).max(320);
+
+    // 边界保护
+    let tile_x = tile_x.min(img_w.saturating_sub(tile_w));
+    let tile_y = tile_y.min(img_h.saturating_sub(tile_h));
+
+    if let Ok(img) = crop_roi(&cap.image, tile_x, tile_y, tile_w, tile_h) {
+        Some(WaterTile {
+            image: img,
+            offset_x: tile_x,
+            offset_y: tile_y,
+        })
+    } else {
+        None
+    }
+}
+
+/// 水面中心 640×640 裁剪（保留备用）
+pub fn get_water_center_640(cap: &WindowCapture) -> Option<WaterTile> {
+    let (img_w, img_h) = cap.image.dimensions();
+    if img_w < 640 || img_h < 640 {
+        return None;
+    }
+
+    const TILE: u32 = 640;
+    let center_x = img_w / 2;
+    let tile_x = center_x.saturating_sub(TILE / 2).min(img_w - TILE);
+
+    let y_top = (img_h as f32 * 0.10) as u32;
+    let y_bot = (img_h as f32 * 0.88) as u32;
+    let center_y = (y_top + y_bot) / 2;
+    let tile_y = center_y.saturating_sub(TILE / 2).clamp(y_top, (img_h - TILE).max(y_top));
+
+    if let Ok(img) = crop_roi(&cap.image, tile_x, tile_y, TILE, TILE) {
+        Some(WaterTile { image: img, offset_x: tile_x, offset_y: tile_y })
+    } else {
+        None
+    }
+}
+
 /// 裁剪屏幕特定区域 (ROI)
 pub fn crop_roi(
     img: &RgbaImage,
