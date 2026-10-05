@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "wow_assistant",
+  "productName": "魔兽世界智能助手",
   "version": "0.1.0",
-  "identifier": "com.huihu.wow_assistant",
+  "identifier": "com.huihu.assistant",
   "build": {
     "frontendDist": "../src"
   },
@@ -11,7 +11,7 @@
     "windows": [
       {
         "label": "main",
-        "title": "WoW 智能硬件助手 (RP2040 硬件驱动版)",
+        "title": "魔兽世界智能助手 v0.1",
         "width": 940,
         "height": 720,
         "minWidth": 800,
